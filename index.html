@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Activity List Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    .page { width: 8.5in; min-height: 11in; padding: 0.75in; margin: 1.5rem auto; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 8px; page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    @media print {
+      body { background-color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
+      .page { margin: 0; box-shadow: none; border-radius: 0; width: 100%; height: 100%; padding: 0.5in; }
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    .editable-title:hover { background-color: #f0f9ff; cursor: pointer; }
+    .card-physical { border-left: 6px solid #84cc16; }
+    .card-print { border-left: 6px solid #0ea5e9; }
+    .type-badge { font-size: 11px; padding: 2px 8px; border-radius: 9999px; font-weight: 600; }
+    .badge-physical { background: #ecfccb; color: #3f6212; }
+    .badge-print { background: #e0f2fe; color: #075985; }
+  </style>
+</head>
+<body class="text-gray-800">
+
+  <header class="bg-white shadow-md p-4 flex items-center justify-between sticky top-0 z-20 no-print">
+    <div class="flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
+      <h1 class="text-xl font-bold text-gray-800">Activity List Generator</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="save-json-btn" title="Save Project as JSON" class="cursor-pointer bg-gray-100 text-gray-700 font-semibold py-2 px-3 rounded-lg shadow-sm hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+        Save
+      </button>
+      <label for="load-json-upload" title="Load Project from JSON" class="cursor-pointer bg-gray-100 text-gray-700 font-semibold py-2 px-3 rounded-lg shadow-sm hover:bg-gray-200 transition-colors duration-200 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        Load
+      </label>
+      <input type="file" id="load-json-upload" class="hidden" accept=".json" />
+      <label for="csv-upload" class="cursor-pointer bg-indigo-600 text-white font-semibold py-2 px-3 rounded-lg shadow-sm hover:bg-indigo-700 transition-colors duration-200 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        Upload CSV
+      </label>
+      <input type="file" id="csv-upload" class="hidden" accept=".csv" />
+      <button id="print-btn" class="bg-gray-700 text-white font-semibold py-2 px-3 rounded-lg shadow-sm hover:bg-gray-800 transition-colors duration-200 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+        Print
+      </button>
+      <button id="clear-all-btn" title="Clear All Data" class="text-red-600 hover:bg-red-100 p-2 rounded-lg transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="pages-container" class="container mx-auto px-4 pb-10">
+    <div id="welcome-message" class="text-center p-10 bg-white rounded-lg shadow-md my-8">
+      <h2 class="text-2xl font-bold text-gray-700 mb-4">Welcome to the Activity List Generator!</h2>
+      <p class="text-gray-600 mb-6">Load a project from a JSON file, upload a CSV to begin, or interact with the sample data below.</p>
+      <p class="text-sm text-gray-500">Your CSV should have a header row. You will be able to map columns after uploading.</p>
+    </div>
+  </main>
+
+  <template id="add-buttons-template">
+    <div class="mt-6 grid grid-cols-2 gap-4 no-print">
+      <button class="add-item-btn bg-green-100 text-green-800 font-semibold py-2 px-4 rounded-lg hover:bg-green-200 transition-colors" data-type="physical">+ Add Physical Item</button>
+      <button class="add-item-btn bg-blue-100 text-blue-800 font-semibold py-2 px-4 rounded-lg hover:bg-blue-200 transition-colors" data-type="print">+ Add Print Item</button>
+    </div>
+  </template>
+
+  <div id="item-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-30 hidden no-print">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div class="p-5 border-b flex justify-between items-center">
+        <h2 id="modal-title" class="text-xl font-bold">Edit Item</h2>
+      </div>
+      <form id="item-form" class="p-6 space-y-4 overflow-y-auto">
+        <input type="hidden" id="modal-item-id">
+        <input type="hidden" id="modal-item-type">
+        <input type="hidden" id="modal-activity-num">
+
+        <div>
+          <label for="item-name" class="block mb-2 text-sm font-medium text-gray-900">Item Name</label>
+          <input type="text" id="item-name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="e.g., Colorful Stickers">
+        </div>
+
+        <div id="physical-fields" class="space-y-4">
+          <hr>
+          <h3 class="text-md font-semibold text-gray-700">Physical Item Details</h3>
+          <div>
+            <label for="physical-card-type" class="block mb-2 text-sm font-medium text-gray-900">Card Type</label>
+            <select id="physical-card-type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+              <option value="full">Full Detail (with image)</option>
+              <option value="base">Base (name and location only)</option>
+            </select>
+          </div>
+          <div id="physical-full-fields" class="space-y-4">
+             <div>
+              <label for="item-image-url-physical" class="block mb-2 text-sm font-medium text-gray-900">Image URL</label>
+              <input type="text" id="item-image-url-physical" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="https://...">
+            </div>
+            <div>
+              <label for="item-asin" class="block mb-2 text-sm font-medium text-gray-900">ASIN</label>
+              <input type="text" id="item-asin" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="B01234ABCD">
+            </div>
+            <div>
+              <label for="item-qty" class="block mb-2 text-sm font-medium text-gray-900">Qty. per 25</label>
+              <input type="text" id="item-qty" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="e.g., 1 Set">
+            </div>
+          </div>
+           <div>
+            <label for="item-location" class="block mb-2 text-sm font-medium text-gray-900">Location</label>
+            <input type="text" id="item-location" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="e.g., General Box">
+          </div>
+        </div>
+
+        <div id="print-fields" class="space-y-4">
+          <hr>
+          <h3 class="text-md font-semibold text-gray-700">Print Item Details</h3>
+           <div>
+            <label for="item-image-url-print" class="block mb-2 text-sm font-medium text-gray-900">Image URL</label>
+            <input type="text" id="item-image-url-print" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="https://...">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="item-color" class="block mb-2 text-sm font-medium text-gray-900">Color</label>
+              <input type="text" id="item-color" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Color">
+            </div>
+            <div>
+              <label for="item-size" class="block mb-2 text-sm font-medium text-gray-900">Size</label>
+              <input type="text" id="item-size" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="8.5x11">
+            </div>
+            <div>
+              <label for="item-set" class="block mb-2 text-sm font-medium text-gray-900">Set/Individual</label>
+              <input type="text" id="item-set" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Set (1)">
+            </div>
+            <div>
+              <label for="item-laminated" class="block mb-2 text-sm font-medium text-gray-900">Laminated</label>
+              <input type="text" id="item-laminated" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Yes/No">
+            </div>
+            <div>
+              <label for="item-doublesided" class="block mb-2 text-sm font-medium text-gray-900">Double-Sided</label>
+              <input type="text" id="item-doublesided" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Yes/No">
+            </div>
+            <div>
+              <label for="item-cut" class="block mb-2 text-sm font-medium text-gray-900">Cut</label>
+              <input type="text" id="item-cut" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Yes/No">
+            </div>
+            <div>
+              <label for="item-inorder" class="block mb-2 text-sm font-medium text-gray-900">In Order</label>
+              <input type="text" id="item-inorder" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Yes/No">
+            </div>
+          </div>
+        </div>
+
+        <div>
+            <label for="item-notes" class="block mb-2 text-sm font-medium text-gray-900">Notes</label>
+            <textarea id="item-notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Any additional notes..."></textarea>
+        </div>
+      </form>
+      <div class="p-4 bg-gray-50 border-t flex justify-between">
+        <button type="button" id="delete-item-btn" class="text-white bg-red-600 hover:bg-red-700 font-medium rounded-lg text-sm px-5 py-2.5">Delete</button>
+        <div class="flex gap-2">
+            <button type="button" id="cancel-btn" class="text-gray-500 bg-white hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm px-5 py-2.5">Cancel</button>
+            <button type="submit" form="item-form" class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5">Save Item</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="csv-mapping-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-40 hidden no-print">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div class="p-6 border-b">
+        <h2 class="text-2xl font-bold text-gray-800">Map CSV Columns</h2>
+        <p class="text-sm text-gray-500 mt-1">You can map multiple CSV columns to the same field (e.g., 'Color' and 'Size' to 'Item Name'). Values will be joined with a dash.</p>
+        <p class="text-sm text-gray-500 mt-1">You must map at least one column to <span class="font-semibold">Activity Number</span>.</p>
+      </div>
+      <div id="mapping-table-container" class="p-6 overflow-y-auto">
+        <table class="w-full text-sm text-left text-gray-500">
+          <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+            <tr>
+              <th scope="col" class="px-6 py-3 rounded-l-lg">CSV Header</th>
+              <th scope="col" class="px-6 py-3">Sample Data</th>
+              <th scope="col" class="px-6 py-3 rounded-r-lg">Map to Field</th>
+            </tr>
+          </thead>
+          <tbody id="mapping-table-body"></tbody>
+        </table>
+      </div>
+      <div class="p-6 border-t flex justify-end gap-4 bg-gray-50 rounded-b-xl">
+        <button type="button" id="cancel-mapping-btn" class="text-gray-500 bg-white hover:bg-gray-100 border border-gray-300 font-medium rounded-lg text-sm px-5 py-2.5">Cancel</button>
+        <button type="button" id="process-csv-btn" class="text-white bg-indigo-600 hover:bg-indigo-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Process CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex-col items-center justify-center z-50 hidden no-print">
+    <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    <p class="mt-4 text-lg text-gray-700 font-semibold">Processing...</p>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // --- DATA ---
+    let activities = [];
+    let csvData = { headers: [], rows: [] };
+
+    const APP_FIELDS = {
+      activityNum: { label: 'Activity Number (Group)', required: true },
+      activityName: { label: 'Activity Name (Title)' },
+      subTitle: { label: 'Activity Subtitle' },
+      name: { label: 'Item Name' },
+      type: { label: 'Type (Physical/Print)' },
+      asin: { label: 'ASIN' },
+      imageUrl: { label: 'Image URL' },
+      qtyPer25: { label: 'Qty. per 25' },
+      location: { label: 'Location' },
+      notes: { label: 'Notes' },
+      color: { label: 'Color' },
+      size: { label: 'Size' },
+      setIndividual: { label: 'Set/Individual' },
+      laminated: { label: 'Laminated' },
+      doubleSided: { label: 'Double-Sided' },
+      cut: { label: 'Cut' },
+      inOrder: { label: 'In Order' },
+    };
+
+    // --- DOM ELEMENTS ---
+    const pagesContainer = document.getElementById('pages-container');
+    const csvUpload = document.getElementById('csv-upload');
+    const printBtn = document.getElementById('print-btn');
+    const welcomeMessage = document.getElementById('welcome-message');
+    const modal = document.getElementById('item-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const itemForm = document.getElementById('item-form');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const deleteBtn = document.getElementById('delete-item-btn');
+    const physicalFields = document.getElementById('physical-fields');
+    const printFields = document.getElementById('print-fields');
+    const physicalCardTypeSelect = document.getElementById('physical-card-type');
+    const physicalFullFields = document.getElementById('physical-full-fields');
+    const mappingModal = document.getElementById('csv-mapping-modal');
+    const mappingTableBody = document.getElementById('mapping-table-body');
+    const cancelMappingBtn = document.getElementById('cancel-mapping-btn');
+    const processCsvBtn = document.getElementById('process-csv-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const saveJsonBtn = document.getElementById('save-json-btn');
+    const loadJsonUpload = document.getElementById('load-json-upload');
+    const clearAllBtn = document.getElementById('clear-all-btn');
+
+    // --- HELPERS ---
+    const showLoading = (show) => loadingOverlay.style.display = show ? 'flex' : 'none';
+
+    const normalizeType = (raw) => {
+      if (!raw) return '';
+      const s = String(raw).toLowerCase().trim();
+      if (s.includes('print')) return 'print';
+      if (s.startsWith('pr') && !s.includes('phys')) return 'print';
+      if (s.includes('phys')) return 'physical';
+      if (s === 'p') return 'physical';
+      return '';
+    };
+
+    const inferType = (row, mapping) => {
+      let printScore = 0;
+      let physicalScore = 0;
+
+      const getVal = (key) => {
+        if (!mapping[key]) return '';
+        return mapping[key].map(idx => row[idx]).join('');
+      };
+
+      ['color','size','setIndividual','laminated','doubleSided','cut','inOrder'].forEach(k => { if (getVal(k)) printScore++; });
+      ['asin','qtyPer25','location'].forEach(k => { if (getVal(k)) physicalScore++; });
+      if(getVal('imageUrl')) { printScore++; physicalScore++; }
+
+      if (printScore > physicalScore) return 'print';
+      return 'physical';
+    };
+
+    const safeVal = (v) => (v == null ? '' : String(v).trim());
+
+    // --- RENDER ---
+    const generateDetailHtml = (label, value) => (value && safeVal(value) !== '') ? `<div><span class="font-semibold">${label}:</span> ${safeVal(value)}</div>` : '';
+
+    const createItemCard = (item) => {
+      const card = document.createElement('div');
+      const common = 'bg-gray-50 p-4 rounded-xl shadow-md border border-gray-200 relative break-inside-avoid';
+      const typeClass = item.type === 'physical' ? 'card-physical' : 'card-print';
+      card.className = `${common} ${typeClass}`;
+      card.dataset.itemId = item.id;
+
+      const badge = item.type === 'physical'
+        ? `<span class="type-badge badge-physical">Physical</span>`
+        : `<span class="type-badge badge-print">Print</span>`;
+
+      const imgFallback = 'https://placehold.co/100x100/e0e0e0/757575?text=No+Image';
+
+      let content = '';
+      if (item.type === 'physical') {
+        if (item.cardType === 'base') {
+          content = `
+            <div class="flex items-start justify-between">
+              <h3 class="font-bold text-gray-800 text-lg">${safeVal(item.name) || 'Unnamed Item'}</h3>
+              ${badge}
+            </div>
+            ${generateDetailHtml('Location', item.location)}
+            ${item.notes ? `<div class="text-sm text-gray-600 mt-2"><span class="font-semibold">Notes:</span> ${safeVal(item.notes)}</div>` : ''}
+          `;
+        } else {
+          content = `
+            <div class="flex gap-4">
+              <div class="flex-shrink-0">
+                <img src="${safeVal(item.imageUrl) || imgFallback}" onerror="this.src='${imgFallback}'" alt="${safeVal(item.name)}" class="w-24 h-24 rounded-md object-cover">
+              </div>
+              <div class="text-sm w-full">
+                <div class="flex items-start justify-between">
+                  <h3 class="font-bold text-gray-800 text-lg">${safeVal(item.name) || 'Unnamed Item'}</h3>
+                  ${badge}
+                </div>
+                ${generateDetailHtml('ASIN', item.asin)}
+                ${generateDetailHtml('Qty. per 25', item.qtyPer25)}
+                ${generateDetailHtml('Location', item.location)}
+                ${item.notes ? `<div class="text-gray-600 mt-2"><span class="font-semibold">Notes:</span> ${safeVal(item.notes)}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }
+      } else {
+        const hasImage = !!safeVal(item.imageUrl);
+        content = `
+          <div class="flex gap-4">
+            ${hasImage ? `
+              <div class="flex-shrink-0">
+                <img src="${safeVal(item.imageUrl)}" onerror="this.src='${imgFallback}'" alt="${safeVal(item.name)}" class="w-24 h-24 rounded-md object-cover">
+              </div>` : ''
+            }
+            <div class="w-full">
+              <div class="flex items-start justify-between">
+                <h3 class="font-bold text-gray-800 text-lg mb-2">${safeVal(item.name) || 'Unnamed Item'}</h3>
+                ${badge}
+              </div>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                ${generateDetailHtml('Color', item.color)}
+                ${generateDetailHtml('Size', item.size)}
+                ${generateDetailHtml('Set', item.setIndividual)}
+                ${generateDetailHtml('Laminated', item.laminated)}
+                ${generateDetailHtml('2-Sided', item.doubleSided)}
+                ${generateDetailHtml('Cut', item.cut)}
+                ${generateDetailHtml('In Order', item.inOrder)}
+              </div>
+              ${item.notes ? `<div class="text-sm text-gray-600 mt-2"><span class="font-semibold">Notes:</span> ${safeVal(item.notes)}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      card.innerHTML = content + `
+        <button class="edit-item-btn absolute top-2 right-2 p-1.5 bg-white rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 transition-colors no-print" title="Edit item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+        </button>`;
+      return card;
+    };
+
+    const render = () => {
+      pagesContainer.innerHTML = '';
+      if (activities.length === 0) {
+        welcomeMessage.classList.remove('hidden');
+        return;
+      }
+      welcomeMessage.classList.add('hidden');
+
+      activities
+        .sort((a, b) => String(a.activityNum).localeCompare(String(b.activityNum), undefined, { numeric: true }))
+        .forEach(activity => {
+          const page = document.createElement('div');
+          page.className = 'page';
+          page.dataset.activityNum = activity.activityNum;
+          page.innerHTML = `
+            <div class="text-center mb-10">
+              <div class="group relative">
+                <h1 class="text-4xl font-bold text-gray-800 p-2 rounded-md editable-title" data-field="activityName">${safeVal(activity.activityName)}</h1>
+                <h2 class="text-2xl text-gray-500 mt-1 p-2 rounded-md editable-title" data-field="subTitle">${safeVal(activity.subTitle)}</h2>
+                <div class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-8 items-start">
+              <div class="physical-items-col space-y-4">
+                <div class="bg-lime-200 text-lime-800 font-bold text-lg text-center py-2 rounded-lg shadow-sm">Physical Items</div>
+              </div>
+              <div class="print-items-col space-y-4">
+                <div class="bg-sky-200 text-sky-800 font-bold text-lg text-center py-2 rounded-lg shadow-sm">Print Items</div>
+              </div>
+            </div>
+          `;
+          const physicalCol = page.querySelector('.physical-items-col');
+          const printCol = page.querySelector('.print-items-col');
+
+          (activity.items || []).forEach(item => {
+            const card = createItemCard(item);
+            if (item.type === 'physical') physicalCol.appendChild(card);
+            else printCol.appendChild(card);
+          });
+
+          page.appendChild(document.getElementById('add-buttons-template').content.cloneNode(true));
+          pagesContainer.appendChild(page);
+        });
+    };
+
+    const editTitle = (titleEl) => {
+      const originalText = titleEl.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = originalText;
+      input.className = 'w-full text-center bg-blue-50 border border-blue-300 rounded-md ' + titleEl.className.replace('editable-title', '');
+      titleEl.replaceWith(input);
+      input.focus();
+      const save = () => {
+        const activityNum = input.closest('[data-activity-num]').dataset.activityNum;
+        const activity = activities.find(a => a.activityNum == activityNum);
+        if (activity) {
+          activity[titleEl.dataset.field] = input.value;
+        }
+        render();
+      };
+      input.addEventListener('blur', save);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+    };
+
+    const openModal = (item, activityNum, itemTypeForAdd) => {
+      itemForm.reset();
+      const isAdding = !item;
+      modalTitle.textContent = isAdding ? 'Add New Item' : 'Edit Item';
+      deleteBtn.classList.toggle('hidden', isAdding);
+      document.getElementById('modal-activity-num').value = activityNum;
+
+      if (isAdding) {
+        document.getElementById('modal-item-id').value = `item_${Date.now()}`;
+        document.getElementById('modal-item-type').value = itemTypeForAdd;
+        physicalFields.style.display = itemTypeForAdd === 'physical' ? 'block' : 'none';
+        printFields.style.display = itemTypeForAdd === 'print' ? 'block' : 'none';
+        if (itemTypeForAdd === 'physical') {
+           physicalCardTypeSelect.value = 'full';
+           physicalFullFields.style.display = 'block';
+        }
+      } else {
+        document.getElementById('modal-item-id').value = item.id;
+        document.getElementById('modal-item-type').value = item.type;
+        document.getElementById('item-name').value = safeVal(item.name);
+        document.getElementById('item-notes').value = safeVal(item.notes);
+        physicalFields.style.display = item.type === 'physical' ? 'block' : 'none';
+        printFields.style.display = item.type === 'print' ? 'block' : 'none';
+
+        if (item.type === 'physical') {
+          physicalCardTypeSelect.value = item.cardType || 'full';
+          physicalFullFields.style.display = (item.cardType || 'full') === 'full' ? 'block' : 'none';
+          document.getElementById('item-image-url-physical').value = safeVal(item.imageUrl);
+          document.getElementById('item-asin').value = safeVal(item.asin);
+          document.getElementById('item-qty').value = safeVal(item.qtyPer25);
+          document.getElementById('item-location').value = safeVal(item.location);
+        } else {
+          document.getElementById('item-image-url-print').value = safeVal(item.imageUrl);
+          document.getElementById('item-color').value = safeVal(item.color);
+          document.getElementById('item-size').value = safeVal(item.size);
+          document.getElementById('item-set').value = safeVal(item.setIndividual);
+          document.getElementById('item-laminated').value = safeVal(item.laminated);
+          document.getElementById('item-doublesided').value = safeVal(item.doubleSided);
+          document.getElementById('item-cut').value = safeVal(item.cut);
+          document.getElementById('item-inorder').value = safeVal(item.inOrder);
+        }
+      }
+      modal.classList.remove('hidden');
+    };
+
+    const saveItem = () => {
+      const itemId = document.getElementById('modal-item-id').value;
+      const activityNum = document.getElementById('modal-activity-num').value;
+      const itemType = document.getElementById('modal-item-type').value;
+      const activity = activities.find(a => a.activityNum == activityNum);
+      if (!activity) return; // Should not happen
+
+      let item = activity.items.find(i => i.id == itemId);
+      const isNewItem = !item;
+      if (isNewItem) {
+        item = { id: itemId, type: itemType };
+      }
+
+      item.name = safeVal(document.getElementById('item-name').value);
+      item.notes = safeVal(document.getElementById('item-notes').value);
+
+      if (itemType === 'physical') {
+        item.cardType = physicalCardTypeSelect.value;
+        item.imageUrl = safeVal(document.getElementById('item-image-url-physical').value);
+        item.asin = safeVal(document.getElementById('item-asin').value);
+        item.qtyPer25 = safeVal(document.getElementById('item-qty').value);
+        item.location = safeVal(document.getElementById('item-location').value);
+      } else {
+        item.imageUrl = safeVal(document.getElementById('item-image-url-print').value);
+        item.color = safeVal(document.getElementById('item-color').value);
+        item.size = safeVal(document.getElementById('item-size').value);
+        item.setIndividual = safeVal(document.getElementById('item-set').value);
+        item.laminated = safeVal(document.getElementById('item-laminated').value);
+        item.doubleSided = safeVal(document.getElementById('item-doublesided').value);
+        item.cut = safeVal(document.getElementById('item-cut').value);
+        item.inOrder = safeVal(document.getElementById('item-inorder').value);
+      }
+      
+      if (isNewItem) {
+        activity.items.push(item);
+      }
+
+      modal.classList.add('hidden');
+      render();
+    };
+
+    const deleteItem = () => {
+      const itemId = document.getElementById('modal-item-id').value;
+      const activityNum = document.getElementById('modal-activity-num').value;
+      const activity = activities.find(a => a.activityNum == activityNum);
+      if (activity) {
+        activity.items = activity.items.filter(i => i.id != itemId);
+      }
+      modal.classList.add('hidden');
+      render();
+    };
+
+    const showMappingModal = () => {
+      mappingTableBody.innerHTML = '';
+      const sampleRow = csvData.rows[0] || [];
+      csvData.headers.forEach((header, index) => {
+        const row = document.createElement('tr');
+        row.className = 'bg-white border-b';
+        let selectOptions = '<option value="">-- Ignore --</option>';
+        for (const [key, value] of Object.entries(APP_FIELDS)) {
+          selectOptions += `<option value="${key}">${value.label}${value.required ? ' *' : ''}</option>`;
+        }
+        row.innerHTML = `
+          <td class="px-6 py-4 font-medium text-gray-900">${header}</td>
+          <td class="px-6 py-4 text-gray-600 italic">"${sampleRow[index] || ''}"</td>
+          <td class="px-6 py-4">
+            <select class="mapping-select w-full p-2 border border-gray-300 rounded-md" data-csv-header="${header}">
+              ${selectOptions}
+            </select>
+          </td>`;
+        mappingTableBody.appendChild(row);
+      });
+      autoSelectMappings();
+      mappingModal.classList.remove('hidden');
+    };
+
+    const autoSelectMappings = () => {
+      const selects = mappingTableBody.querySelectorAll('.mapping-select');
+      selects.forEach(select => {
+        const header = (select.dataset.csvHeader || '').toLowerCase().replace(/[^a-z0-9]/gi, '');
+        if (!header) return;
+        for (const key in APP_FIELDS) {
+          const keyLabel = APP_FIELDS[key].label.toLowerCase().replace(/[^a-z0-9]/gi, '');
+          const keyItself = key.toLowerCase();
+          if (header.includes(keyItself) || keyItself.includes(header) || header.includes(keyLabel) || keyLabel.includes(header)) {
+             if (header.length > 2 || key.length > 2) {
+                select.value = key;
+                return;
+             }
+          }
+        }
+      });
+    };
+
+    const processMappedCsv = () => {
+      // FEATURE: Map multiple columns to one field.
+      // Mapping is now { appField: [colIndex1, colIndex2], ... }
+      const mapping = {};
+      mappingTableBody.querySelectorAll('.mapping-select').forEach((select, index) => {
+          const fieldKey = select.value;
+          if (fieldKey !== '') {
+              if (!mapping[fieldKey]) mapping[fieldKey] = [];
+              mapping[fieldKey].push(index);
+          }
+      });
+
+      if (!mapping.activityNum || mapping.activityNum.length === 0) {
+        alert('Please map at least one CSV column to the "Activity Number (Group)" field.');
+        return;
+      }
+
+      const parsedActivities = {};
+
+      csvData.rows.forEach((row, rowIndex) => {
+        if (!row || !row.some(cell => safeVal(cell) !== '')) return;
+
+        const getMappedValue = (fieldKey) => {
+            if (!mapping[fieldKey]) return '';
+            return mapping[fieldKey]
+                .map(colIndex => safeVal(row[colIndex]))
+                .filter(v => v !== '') // Don't include empty cells
+                .join(' - '); // Join with a dash
+        };
+        
+        const activityNum = getMappedValue('activityNum');
+        if (!activityNum) return;
+
+        if (!parsedActivities[activityNum]) {
+          const actName = getMappedValue('activityName') || `Activity ${activityNum}`;
+          const sub = getMappedValue('subTitle') || `Details for Activity #${activityNum}`;
+          parsedActivities[activityNum] = { activityNum, activityName: actName, subTitle: sub, items: [] };
+        }
+
+        const item = { id: `csv_${rowIndex}_${Date.now()}` };
+        for (const key in APP_FIELDS) {
+          if (key === 'activityNum' || key === 'activityName' || key === 'subTitle') continue;
+          item[key] = getMappedValue(key);
+        }
+
+        if (!item.name) {
+          item.name = item.asin ? `ASIN ${item.asin}` : `Item ${rowIndex + 1}`;
+        }
+
+        let t = normalizeType(item.type);
+        if (!t) t = inferType(row, mapping);
+        item.type = t;
+
+        if (item.type === 'physical') {
+          const hasDetail = !!item.asin || !!item.imageUrl;
+          item.cardType = hasDetail ? 'full' : 'base';
+        }
+
+        parsedActivities[activityNum].items.push(item);
+      });
+
+      activities = Object.values(parsedActivities);
+      mappingModal.classList.add('hidden');
+      render();
+    };
+
+
+    // --- FILE HANDLERS & EVENTS ---
+    csvUpload.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      showLoading(true);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const rows = text.split(/\r?\n/).map(row => row.split(',').map(cell => cell.trim().replace(/^"|"$/g, '')));
+          if (rows.length < 2) throw new Error('CSV must have a header and at least one data row.');
+          csvData.headers = rows.shift();
+          csvData.rows = rows
+            .map(r => r.slice(0, csvData.headers.length))
+            .filter(r => r.some(cell => cell && cell.length));
+          if (csvData.rows.length === 0) throw new Error('No valid data rows found in CSV.');
+          showMappingModal();
+        } catch (error) {
+          alert('Error reading CSV: ' + error.message);
+        } finally {
+          showLoading(false);
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    printBtn.addEventListener('click', () => window.print());
+
+    clearAllBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+        activities = [];
+        render();
+      }
+    });
+
+    pagesContainer.addEventListener('click', e => {
+      const editBtn = e.target.closest('.edit-item-btn');
+      const addBtn = e.target.closest('.add-item-btn');
+      const titleEl = e.target.closest('.editable-title');
+
+      if (editBtn) {
+        const card = editBtn.closest('[data-item-id]');
+        const page = editBtn.closest('[data-activity-num]');
+        const activity = activities.find(a => a.activityNum == page.dataset.activityNum);
+        const item = activity.items.find(i => i.id == card.dataset.itemId);
+        openModal(item, page.dataset.activityNum);
+      } else if (addBtn) {
+        const page = addBtn.closest('[data-activity-num]');
+        openModal(null, page.dataset.activityNum, addBtn.dataset.type);
+      } else if (titleEl) {
+        editTitle(titleEl);
+      }
+    });
+
+    physicalCardTypeSelect.addEventListener('change', e => {
+      physicalFullFields.style.display = e.target.value === 'full' ? 'block' : 'none';
+    });
+
+    cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    itemForm.addEventListener('submit', e => { e.preventDefault(); saveItem(); });
+    deleteBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to delete this item?')) {
+        deleteItem();
+      }
+    });
+    cancelMappingBtn.addEventListener('click', () => mappingModal.classList.add('hidden'));
+    processCsvBtn.addEventListener('click', processMappedCsv);
+
+    saveJsonBtn.addEventListener('click', () => {
+      const dataStr = JSON.stringify(activities, null, 2);
+      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.download = `activity-list-project-${new Date().toISOString().slice(0,10)}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    loadJsonUpload.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const loadedActivities = JSON.parse(e.target.result);
+          if (Array.isArray(loadedActivities)) {
+            activities = loadedActivities;
+            render();
+          } else {
+            alert('Invalid JSON file format.');
+          }
+        } catch (error) {
+          alert('Error parsing JSON file: ' + error.message);
+        } finally {
+            event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // --- SAMPLE & INITIAL RENDER ---
+    const loadSampleData = () => {
+      activities = [{
+        activityNum: '1',
+        activityName: 'Story Sprint Fun',
+        subTitle: 'TK-2 Storytelling - Activity #1',
+        items: [
+          { id: 'sample1', type: 'physical', cardType: 'full', name: 'Stickers', asin: 'B0DCTGL2WG', imageUrl: 'https://placehold.co/150x150/e2e8f0/334155?text=Stickers', qtyPer25: '', location: 'General Box', notes: 'Sample notes about stickers.' },
+          { id: 'sample3', type: 'physical', cardType: 'base', name: 'Coloring Supplies', location: 'Lake Elsinore Base Materials', notes: '' },
+          { id: 'sample5', type: 'print', name: 'Four Corners Signs', imageUrl: '', color: 'B&W', size: '8.5x11', setIndividual: 'Set (1)', laminated: 'No', doubleSided: 'No', cut: 'No', inOrder: 'Yes', notes: '1 per class' }
+        ]
+      }];
+    };
+    loadSampleData();
+    render();
+  });
+  </script>
+</body>
+</html>
